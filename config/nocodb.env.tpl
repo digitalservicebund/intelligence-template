@@ -1,0 +1,1 @@
+NC_DB="pg://db:5432?u={{ op://VAULT_NAME/$APP_ENV-nocodb-db-user/username }}&p={{ op://VAULT_NAME/$APP_ENV-nocodb-db-user/password }}&d=nocodb_data"

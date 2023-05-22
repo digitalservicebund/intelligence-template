@@ -1,0 +1,10 @@
+MB_DB_TYPE=postgres
+MB_DB_DBNAME=metabase
+MB_DB_PORT=5432
+MB_DB_HOST=db
+UseSSE=2
+MB_DB_USER={{ op://VAULT_NAME/$APP_ENV-metabase-db-user/username }}
+MB_DB_PASS={{ op://VAULT_NAME/$APP_ENV-metabase-db-user/password }}
+MB_ENCRYPTION_SECRET_KEY={{ op://VAULT_NAME/$APP_ENV-metabase-encryption-key/password }}
+MB_SITE_URL=https://domain.de
+MB_START_OF_WEEK="monday"

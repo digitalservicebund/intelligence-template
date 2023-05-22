@@ -1,0 +1,142 @@
+version: "3"
+
+services:
+  db:
+    restart: "always"
+    image: postgres:14.6-bullseye
+    env_file:
+      - ./config/postgres.env
+    volumes:
+      - /root/postgres.conf:/usr/local/etc/postgres/postgres.conf"
+      - postgresql_data:/var/lib/postgresql/data/
+      - /root/bootstrap/00_metabase_setup.sh:/docker-entrypoint-initdb.d/00_metabase_setup.sh
+      - /root/bootstrap/01_arbitrary_data_setup.sh:/docker-entrypoint-initdb.d/01_arbitrary_data_setup.sh
+      - /root/bootstrap/02_nocodb_setup.sh:/docker-entrypoint-initdb.d/02_nocodb_setup.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 5432:5432
+    networks:
+      - intelNet
+
+  autoheal:
+    image: willfarrell/autoheal
+    restart: always
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: "autoheal"
+      AUTOHEAL_INTERVAL: "10"
+      AUTOHEAL_START_PERIOD: "60"
+      AUTOHEAL_DEFAULT_STOP_TIMEOUT: "10"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - intelNet
+
+  traefik:
+    image: "traefik:v2.9.10"
+    container_name: traefik
+    command:
+      - --log.level=ERROR
+      - --accesslog=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=intelNet
+      - --api.dashboard=true
+      - --certificatesresolvers.myresolver.acme.email=REPLACE_WITH_EMAIL@digitalservice.bund.de
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.myresolver.acme.tlschallenge=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - cert-vol:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`REPLACE_STACK_NAME-traefik.DOMAIN.de`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=user:REPLACE_WITH_GENERATED_HTPASSWD"
+    networks:
+      - intelNet
+
+  metabase:
+    restart: "always"
+    links:
+      - "db:db"
+    image: metabase/metabase:v0.45.3
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.metabase.rule=Host(`REPLACE_STACK_NAME.DOMAIN.de`)
+      - traefik.http.routers.metabase.service=metabase-service
+      - traefik.http.routers.metabase.entrypoints=websecure
+      - traefik.http.routers.metabase.tls.certresolver=myresolver
+      - traefik.http.routers.metabase.tls=true
+      - traefik.http.services.metabase-service.loadbalancer.server.port=3000
+    env_file:
+      - ./config/metabase.env
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+    networks:
+      - intelNet
+
+  nocodb:
+    image: nocodb/nocodb:0.105.3
+    restart: always
+    ports:
+      - "8080:8080"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nocodb.rule=Host(`REPLACE_STACK_NAME-nocodb.DOMAIN.de`)
+      - traefik.http.routers.nocodb.service=nocodb-service
+      - traefik.http.routers.nocodb.entrypoints=websecure
+      - traefik.http.routers.nocodb.tls.certresolver=myresolver
+      - traefik.http.routers.nocodb.tls=true
+      - traefik.http.services.nocodb-service.loadbalancer.server.port=8080
+    env_file:
+      - ./config/nocodb.env
+    depends_on:
+      - db
+    networks:
+      - intelNet
+
+  n8n:
+    image: n8nio/n8n:0.225.1
+    restart: always
+    ports:
+      - "5678:5678"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.n8n.rule=Host(`REPLACE_STACK_NAME-n8n.DOMAIN.de`)
+      - traefik.http.routers.n8n.service=n8n-service
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls.certresolver=myresolver
+      - traefik.http.routers.n8n.tls=true
+      - traefik.http.services.n8n-service.loadbalancer.server.port=5678
+    env_file:
+      - ./config/n8n.env
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - db
+    networks:
+      - intelNet
+
+volumes:
+  cert-vol:
+  postgresql_data:
+  n8n_data:
+networks:
+  intelNet:
