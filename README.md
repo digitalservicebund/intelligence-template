@@ -17,7 +17,7 @@ This stack builds up a stack consisting of the following services:
 - Docker will be installed on the instance
 - stack credentials come from 1password
 - The KPI Stack is deployed with docker compose, the following things are part of the compose file
-  - PostegreSQL
+  - PostgreSQL
   - Autoheal (monitors and restarts containers)
   - Traefik (proxy to the public services)
   - Metabase
