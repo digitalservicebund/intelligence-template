@@ -11,6 +11,6 @@ N8N_HIDE_USAGE_PAGE=true
 N8N_DIAGNOSTICS_ENABLED=false
 N8N_HIRING_BANNER_ENABLED=false
 N8N_SMTP_USER={{ op://VAULT_NAME/n8n-smtp/username }}
-N8N_SMTP_SENDERR={{ op://VAULT_NAME/n8n-smtp/username }}
+N8N_SMTP_SENDER={{ op://VAULT_NAME/n8n-smtp/username }}
 N8N_SMTP_PASS={{ op://VAULT_NAME/n8n-smtp/password }}
 N8N_ENCRYPTION_KEY={{ op://VAULT_NAME/$APP_ENV-n8n-encryption-key/password }}
