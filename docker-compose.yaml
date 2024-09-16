@@ -3,7 +3,7 @@ version: "3"
 services:
   db:
     restart: "always"
-    image: postgres:15.5-bookworm
+    image: postgres:14.13-bullseye
     env_file:
       - ./config/postgres.env
     volumes:
@@ -36,7 +36,7 @@ services:
       - intelNet
 
   traefik:
-    image: "traefik:v2.10.6"
+    image: "traefik:v2.11.8"
     container_name: traefik
     command:
       - --log.level=ERROR
@@ -74,7 +74,7 @@ services:
     restart: "always"
     links:
       - "db:db"
-    image: metabase/metabase:v0.47.9
+    image: metabase/metabase:v0.50.25.3
     labels:
       - traefik.enable=true
       - traefik.http.routers.metabase.rule=Host(`REPLACE_STACK_NAME.DOMAIN.de`)
@@ -93,7 +93,7 @@ services:
       - intelNet
 
   nocodb:
-    image: nocodb/nocodb:0.202.9
+    image: nocodb/nocodb:0.255.2
     restart: always
     ports:
       - "8080:8080"
@@ -113,7 +113,7 @@ services:
       - intelNet
 
   n8n:
-    image: n8nio/n8n:1.19.5
+    image: n8nio/n8n:1.58.2
     restart: always
     ports:
       - "5678:5678"
